@@ -28,7 +28,6 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 .addFilterAfter(new JWTTokenGeneratorFilter(), BasicAuthenticationFilter.class)
                 .authorizeRequests(authorize -> {
                     authorize
-                            .antMatchers("/login").permitAll()
                             .antMatchers(HttpMethod.GET, "/student").hasAnyRole("USER", "ADMIN")
                             .antMatchers(HttpMethod.POST, "/student").hasRole("ADMIN")
                             .antMatchers(HttpMethod.PUT, "/student").hasRole("ADMIN")
