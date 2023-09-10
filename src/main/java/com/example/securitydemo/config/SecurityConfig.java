@@ -5,53 +5,52 @@ import com.example.securitydemo.filter.JWTTokenValidatorFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
-import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.provisioning.InMemoryUserDetailsManager;
+import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 
 @Configuration
 @EnableWebSecurity
-public class SecurityConfig extends WebSecurityConfigurerAdapter {
+public class SecurityConfig {
 
-    @Override
-    protected void configure(HttpSecurity http) throws Exception {
-        http.csrf()
-                .disable()
-                .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                .and()
+    @Bean
+    public SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) throws Exception {
+        http.sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS).and().csrf().disable()
                 .addFilterBefore(new JWTTokenValidatorFilter(), BasicAuthenticationFilter.class)
                 .addFilterAfter(new JWTTokenGeneratorFilter(), BasicAuthenticationFilter.class)
-                .authorizeRequests(authorize -> {
-                    authorize
-                            .antMatchers("/login").permitAll()
-                            .antMatchers(HttpMethod.GET, "/student").hasAnyRole("USER", "ADMIN")
-                            .antMatchers(HttpMethod.POST, "/student").hasRole("ADMIN")
-                            .antMatchers(HttpMethod.PUT, "/student").hasRole("ADMIN")
-                            .antMatchers(HttpMethod.DELETE, "/student").hasRole("ADMIN");
-                } )
-                .authorizeRequests()
-                .anyRequest().authenticated()
-                .and()
-                .httpBasic();
+                .authorizeHttpRequests(registry ->
+                        registry
+                                .requestMatchers(HttpMethod.GET, "/student").hasAnyRole("USER", "ADMIN")
+                                .requestMatchers(HttpMethod.POST, "/student").hasRole("ADMIN")
+                                .requestMatchers(HttpMethod.PUT, "/student").hasRole("ADMIN")
+                                .requestMatchers(HttpMethod.DELETE, "/student").hasRole("ADMIN")
+                                .anyRequest().authenticated()
+                ).httpBasic(Customizer.withDefaults());
+        return http.build();
     }
 
-    @Override
-    protected void configure(AuthenticationManagerBuilder auth) throws Exception {
-        auth.inMemoryAuthentication()
-                .withUser("admin")
-                //.password(passwordEncoder().encode("password"))
+    @Bean
+    public UserDetailsService usersInMem() {
+        UserDetails user1 = User.builder()
+                .username("user")
+                .password("$2a$10$HvEztSMq1TadFw4WS6Smw.3zw/n7I1DvPw.YOLhWTf4vDeWAwOnDi")
+                .roles("USER")
+                .build();
+        UserDetails admin = User.builder()
+                .username("admin")
                 .password("$2a$10$HvEztSMq1TadFw4WS6Smw.3zw/n7I1DvPw.YOLhWTf4vDeWAwOnDi")
                 .roles("ADMIN")
-                .and()
-                .withUser("user")
-                //.password(passwordEncoder().encode("password"))
-                .password("$2a$10$HvEztSMq1TadFw4WS6Smw.3zw/n7I1DvPw.YOLhWTf4vDeWAwOnDi")
-                .roles("USER");
+                .build();
+        return new InMemoryUserDetailsManager(user1, admin);
     }
 
     @Bean
