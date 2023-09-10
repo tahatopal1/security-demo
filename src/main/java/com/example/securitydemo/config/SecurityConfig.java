@@ -20,7 +20,6 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 .disable()
                 .authorizeRequests(authorize -> {
                     authorize
-                            .antMatchers("/login").permitAll()
                             .antMatchers(HttpMethod.GET, "/student").hasAnyRole("USER", "ADMIN")
                             .antMatchers(HttpMethod.POST, "/student").hasRole("ADMIN")
                             .antMatchers(HttpMethod.PUT, "/student").hasRole("ADMIN")
